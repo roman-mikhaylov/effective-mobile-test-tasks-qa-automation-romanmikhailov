@@ -1,1 +1,40 @@
+flowchart LR
+    subgraph Context["Контекст: система push-уведомлений"]
+        user["Mobile App User"]
+        mobile["Mobile App"]
+        backend["Petroushka Backend"]
+        pushProv["Push Provider (FCM/APNS)"]
+    end
 
+    user -->|"Использует"| mobile
+    mobile -->|"HTTP API"| backend
+    backend -->|"Push messages"| pushProv
+    pushProv -->|"Push notifications"| mobile
+
+    subgraph BackendContainers["Контейнеры Petroushka Backend"]
+        api["API Gateway"]
+        userSvc["User Service"]
+        orderSvc["Order Service"]
+        cartSvc["Cart Service"]
+        campSvc["Campaign Service"]
+        notifSvc["Notification/Push Service"]
+        mq["Message Queue / Event Bus"]
+        tokensDB[("Device Tokens Storage")]
+        tplDB[("Template Storage")]
+    end
+
+    mobile -->|"HTTP"| api
+    api -->|"REST"| userSvc
+    api -->|"REST"| orderSvc
+    api -->|"REST"| cartSvc
+    api -->|"REST"| campSvc
+
+    orderSvc -->|"OrderStatusChanged"| mq
+    cartSvc -->|"CartCreated/CartUpdated"| mq
+    campSvc -->|"SendPushToSegment"| mq
+
+    mq -->|"consume events"| notifSvc
+    notifSvc -->|"read/write tokens"| tokensDB
+    notifSvc -->|"read templates"| tplDB
+    notifSvc -->|"send push"| pushProv
+    pushProv -->|"deliver push"| mobile
